@@ -1,0 +1,888 @@
+
+// ═══════════════════════════════════════════════════════════════════
+//  RENDLÍK — Rodinná kuchařka  |  v2.0
+//  Firebase Firestore ready — vyplň FB_CONFIG níže
+// ═══════════════════════════════════════════════════════════════════
+import { useState, useEffect, useRef } from "react";
+
+// ─── FIREBASE CONFIG ─────────────────────────────────────────────
+const FB_CONFIG = {
+  apiKey: "AIzaSyAY9mp9b3-yB7ftP8waaAmVrv3HLuHtNBo",
+  authDomain: "rendlik.firebaseapp.com",
+  projectId: "rendlik",
+  storageBucket: "rendlik.firebasestorage.app",
+  messagingSenderId: "213821073799",
+  appId: "1:213821073799:web:975d8b24b5665509ee4b22",
+};
+const USE_FIREBASE = Object.values(FB_CONFIG).some(v => v !== "");
+
+// ─── SEED DATA ───────────────────────────────────────────────────
+const SEED = [
+  {
+    id: "seed1", title: "Svíčková na smetaně", category: "Hlavní jídla",
+    emoji: "🥩", heroColor: "#7C4A2D",
+    description: "Královna české kuchyně. Jemná hovězí svíčková v lahodné smetanové omáčce.",
+    prepTime: 30, cookTime: 180, servings: 4, rating: 5, timesCooked: 14,
+    lastCooked: "2024-03-18", tags: ["česká klasika", "hovězí", "nedělní oběd"],
+    ingredients: [
+      { id:"i1", name:"Hovězí svíčková", amount:800, unit:"g" },
+      { id:"i2", name:"Mrkev", amount:2, unit:"ks" },
+      { id:"i3", name:"Petržel (kořen)", amount:1, unit:"ks" },
+      { id:"i4", name:"Celer", amount:0.5, unit:"ks" },
+      { id:"i5", name:"Cibule", amount:2, unit:"ks" },
+      { id:"i6", name:"Slanina", amount:100, unit:"g" },
+      { id:"i7", name:"Smetana ke šlehání", amount:200, unit:"ml" },
+      { id:"i8", name:"Hovězí vývar", amount:500, unit:"ml" },
+      { id:"i9", name:"Hořčice", amount:1, unit:"lžíce" },
+      { id:"i10", name:"Citron", amount:0.5, unit:"ks" },
+      { id:"i11", name:"Máslo", amount:50, unit:"g" },
+    ],
+    steps: [
+      { id:"s1", text:"Maso očistěte, prošpikujte slaninou a osolte. Nechejte odležet alespoň hodinu." },
+      { id:"s2", text:"Zeleninu nakrájejte nahrubo, zpěňte na tuku s cibulí. Restujte 5 minut do zlatova." },
+      { id:"s3", text:"Maso opečte ze všech stran dozlatova, vložte k zelenině. Přidejte vývar, hořčici a citronovou šťávu." },
+      { id:"s4", text:"Duste zakryté na mírném ohni 2,5–3 hodiny, dokud není maso měkké." },
+      { id:"s5", text:"Maso vyjměte. Zeleninu rozmixujte, přidejte smetanu a provařte 5 minut. Dochuťte." },
+      { id:"s6", text:"Nakrájejte na plátky, podávejte s omáčkou, knedlíkem a brusinkami." },
+    ],
+    photos: [], createdAt: "2024-01-10",
+  },
+  {
+    id: "seed2", title: "Bramborová polévka", category: "Polévky",
+    emoji: "🍵", heroColor: "#9B6A3A",
+    description: "Hustá poctivá polévka jako od babičky. Rychlá a výživná.",
+    prepTime: 15, cookTime: 35, servings: 6, rating: 4, timesCooked: 9,
+    lastCooked: "2024-03-22", tags: ["polévka", "rychlá", "zimní"],
+    ingredients: [
+      { id:"i1", name:"Brambory", amount:600, unit:"g" },
+      { id:"i2", name:"Mrkev", amount:2, unit:"ks" },
+      { id:"i3", name:"Petržel", amount:1, unit:"ks" },
+      { id:"i4", name:"Cibule", amount:1, unit:"ks" },
+      { id:"i5", name:"Česnek", amount:3, unit:"stroužky" },
+      { id:"i6", name:"Slanina", amount:80, unit:"g" },
+      { id:"i7", name:"Smetana", amount:100, unit:"ml" },
+      { id:"i8", name:"Majoránka", amount:1, unit:"lžička" },
+      { id:"i9", name:"Vývar nebo voda", amount:1.5, unit:"l" },
+    ],
+    steps: [
+      { id:"s1", text:"Slaninu nakrájejte na kostičky a opečte na sucho do křupava. Přidejte cibuli a česnek." },
+      { id:"s2", text:"Vložte nakrájenou zeleninu a brambory, přelijte vývarem a vařte 25 minut doměkka." },
+      { id:"s3", text:"Část polévky rozmačkejte pro hustotu. Přidejte smetanu a majoránku." },
+      { id:"s4", text:"Dochuťte solí a pepřem, podávejte s opečeným chlebem." },
+    ],
+    photos: [], createdAt: "2024-02-01",
+  },
+  {
+    id: "seed3", title: "Tvarohové knedlíky", category: "Moučníky",
+    emoji: "🍑", heroColor: "#C4622D",
+    description: "Nadýchané tvarohové knedlíky s meruňkami a máslovou strouhankou.",
+    prepTime: 30, cookTime: 20, servings: 4, rating: 5, timesCooked: 7,
+    lastCooked: "2024-03-01", tags: ["sladké", "tvaroh", "letní"],
+    ingredients: [
+      { id:"i1", name:"Tvaroh", amount:500, unit:"g" },
+      { id:"i2", name:"Vejce", amount:2, unit:"ks" },
+      { id:"i3", name:"Polohrubá mouka", amount:200, unit:"g" },
+      { id:"i4", name:"Krupice", amount:50, unit:"g" },
+      { id:"i5", name:"Meruňky", amount:8, unit:"ks" },
+      { id:"i6", name:"Cukr", amount:2, unit:"lžíce" },
+      { id:"i7", name:"Máslo", amount:60, unit:"g" },
+      { id:"i8", name:"Strouhanka", amount:80, unit:"g" },
+      { id:"i9", name:"Moučkový cukr", amount:3, unit:"lžíce" },
+    ],
+    steps: [
+      { id:"s1", text:"Tvaroh smíchejte s vejci, moukou, krupicí, cukrem a solí. Nechejte 15 min odpočinout." },
+      { id:"s2", text:"Z těsta tvarujte placičky, doprostřed vložte meruňku a uzavřete do kuličky." },
+      { id:"s3", text:"Vařte v osolené vodě 15–18 minut, dokud nevyplavou a chvíli se vaří." },
+      { id:"s4", text:"Na másle opražte strouhanku dozlatova. Obalte knedlíky, posypte moučkovým cukrem." },
+    ],
+    photos: [], createdAt: "2024-02-20",
+  },
+  {
+    id: "seed4", title: "Čočková polévka", category: "Polévky",
+    emoji: "🫕", heroColor: "#5C7A4A",
+    description: "Hustá výživná čočková polévka s uzeným masem a zeleninou.",
+    prepTime: 10, cookTime: 45, servings: 4, rating: 4, timesCooked: 5,
+    lastCooked: "2024-02-28", tags: ["polévka", "čočka", "výživná"],
+    ingredients: [
+      { id:"i1", name:"Červená čočka", amount:250, unit:"g" },
+      { id:"i2", name:"Uzené maso", amount:200, unit:"g" },
+      { id:"i3", name:"Mrkev", amount:2, unit:"ks" },
+      { id:"i4", name:"Cibule", amount:1, unit:"ks" },
+      { id:"i5", name:"Česnek", amount:2, unit:"stroužky" },
+      { id:"i6", name:"Rajčatový protlak", amount:2, unit:"lžíce" },
+      { id:"i7", name:"Kmín mletý", amount:1, unit:"lžička" },
+      { id:"i8", name:"Vývar", amount:1.2, unit:"l" },
+    ],
+    steps: [
+      { id:"s1", text:"Na oleji orestujte cibuli s česnekem dozlatova. Přidejte mrkev a restujte 3 minuty." },
+      { id:"s2", text:"Přidejte propláchlou čočku, protlak, kmín a vývar. Vařte 30 minut." },
+      { id:"s3", text:"Část polévky rozmixujte dohladka. Přidejte nakrájené uzené maso." },
+      { id:"s4", text:"Dochuťte solí, pepřem a citronovou šťávou. Podávejte s chlebem." },
+    ],
+    photos: [], createdAt: "2024-02-10",
+  },
+];
+
+const CATS = ["Vše","Hlavní jídla","Polévky","Přílohy","Moučníky","Snídaně","Dezerty","Nápoje","Saláty"];
+const UNITS = ["g","kg","ml","l","lžíce","lžička","ks","stroužky","špetka","hrnek","balení","svazek"];
+const EMOJIS = ["🍽","🥩","🐔","🐟","🥕","🍅","🫕","🍲","🥘","🍜","🍝","🥗","🍳","🥚","🧀","🥐","🍰","🎂","🍮","🍵","☕","🍺","🫙","🥦","🧅","🧄","🫚","🍋","🍓","🥑"];
+const HERO_COLORS = ["#7C4A2D","#9B6A3A","#C4622D","#5C7A4A","#4A6B8A","#7A5C8A","#8A5C5C","#4A7A6B","#8A7A4A","#6B4A7A"];
+const UNIT_CONV = {
+  g: { kg:0.001, oz:0.03527 }, kg: { g:1000, oz:35.274 },
+  ml: { l:0.001, "fl oz":0.03381 }, l: { ml:1000, "fl oz":33.814 },
+  lžíce: { ml:15, lžička:3 }, lžička: { ml:5, lžíce:0.333 },
+};
+
+const fmt = m => m < 60 ? `${m} min` : `${Math.floor(m/60)} h${m%60?` ${m%60} min`:""}`;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+function useStorage(key, init) {
+  const [v, setV] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
+    catch { return init; }
+  });
+  useEffect(() => { localStorage.setItem(key, JSON.stringify(v)); }, [key, v]);
+  return [v, setV];
+}
+
+function Stars({ value=0, onChange, size=18 }) {
+  const [h, setH] = useState(0);
+  return (
+    <div style={{display:"flex",gap:1}}>
+      {[1,2,3,4,5].map(s => (
+        <span key={s}
+          onClick={() => onChange?.(s)}
+          onMouseEnter={() => onChange && setH(s)}
+          onMouseLeave={() => onChange && setH(0)}
+          style={{fontSize:size, cursor:onChange?"pointer":"default", color:s<=(h||value)?"#C8743A":"#D9C9B5", transition:"color .15s,transform .1s", display:"inline-block", transform:h===s&&onChange?"scale(1.3)":"scale(1)"}}>
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ─── CSS ─────────────────────────────────────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --cr:#F5EFE6;--pa:#EDE4D6;--ww:#FBF8F3;
+    --br:#7C4A2D;--mb:#9B6A3A;--lb:#C4622D;
+    --tx:#2C1A0E;--tm:#6B4A2A;--tl:#9C7A5A;
+    --bo:#D9C9B5;--ac:#C8743A;--ad:#A05A28;
+    --go:#C8A96A;--sh:rgba(44,26,14,.12);
+  }
+  .L{font-family:'Lora',Georgia,serif}
+  .S{font-family:'Source Sans 3',sans-serif}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--bo);border-radius:3px}
+  .card{background:var(--ww);border-radius:18px;box-shadow:0 3px 24px var(--sh);overflow:hidden;cursor:pointer;transition:transform .22s,box-shadow .22s}
+  .card:hover{transform:translateY(-5px);box-shadow:0 12px 40px var(--sh)}
+  .btn{border:none;cursor:pointer;font-family:'Source Sans 3',sans-serif;font-weight:600;border-radius:12px;transition:all .18s;letter-spacing:.3px}
+  .bP{background:var(--ac);color:#fff;padding:13px 24px;font-size:15px}
+  .bP:hover{background:var(--ad);transform:translateY(-1px)}
+  .bO{background:transparent;color:var(--ac);border:2px solid var(--ac);padding:11px 22px;font-size:14px}
+  .bO:hover{background:var(--ac);color:#fff}
+  .chip{display:inline-block;padding:4px 12px;border-radius:20px;background:var(--pa);color:var(--tm);font-size:11px;font-family:'Source Sans 3',sans-serif;margin:2px}
+  input,textarea,select{font-family:'Source Sans 3',sans-serif;border:1.5px solid var(--bo);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--tx);background:var(--ww);outline:none;transition:border .2s,box-shadow .2s;width:100%}
+  input:focus,textarea:focus,select:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(200,116,58,.12)}
+  .nv{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--tl);font-family:'Source Sans 3',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;transition:color .2s;padding:10px 18px;border-radius:14px}
+  .nv.on{color:var(--ac)}
+  .nv:hover{color:var(--ac)}
+  .ov{position:fixed;inset:0;background:rgba(44,26,14,.52);z-index:100;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+  .sh{background:var(--cr);border-radius:28px 28px 0 0;width:100%;max-width:660px;max-height:93vh;overflow-y:auto;padding-bottom:48px}
+  .lbl{display:block;font-family:'Source Sans 3',sans-serif;font-size:11px;font-weight:700;color:var(--tm);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:7px}
+  .tb{flex:1;padding:14px 0;font-size:12px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:'Source Sans 3',sans-serif;color:var(--tl);border-bottom:2.5px solid transparent;transition:all .18s}
+  .tb.on{color:var(--ac);border-bottom-color:var(--ac)}
+  .sdot{width:30px;height:30px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;font-family:'Source Sans 3',sans-serif}
+  .pu{animation:pu 1.1s ease-in-out infinite}
+  @keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .fi{animation:fi .4s ease}
+  @keyframes fi{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .su{animation:su .38s cubic-bezier(.22,.68,0,1.2)}
+  @keyframes su{from{transform:translateY(44px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .tx2{background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
+  .pr{height:7px;background:var(--pa);border-radius:4px;overflow:hidden}
+  .pf{height:100%;background:linear-gradient(90deg,var(--ac),var(--go));border-radius:4px;transition:width .7s cubic-bezier(.22,.68,0,1.1)}
+  .toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%);background:var(--br);color:#fff;padding:12px 26px;border-radius:50px;font-family:'Source Sans 3',sans-serif;font-size:14px;font-weight:600;z-index:300;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25);animation:ti .3s ease}
+  @keyframes ti{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+`;
+
+// ─── FIREBASE SDK (npm packages via Vite) ────────────────────────
+import { initializeApp, getApps } from "firebase/app";
+import {
+  getFirestore, collection, addDoc, doc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp, increment
+} from "firebase/firestore";
+
+const _app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+const _db = getFirestore(_app);
+
+async function getFB() {
+  return {
+    db: _db, collection, addDoc, doc, updateDoc, deleteDoc,
+    onSnapshot, query, orderBy, serverTimestamp, increment
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+export default function Rendlik() {
+  const [local, setLocal] = useStorage("rendlik_v2", SEED);
+  const [fbRecipes, setFbRecipes] = useState([]);
+  const [fbReady, setFbReady] = useState(false);
+  const [fbError, setFbError] = useState(null);
+  const [view, setView] = useState("home");
+  const [active, setActive] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [cat, setCat] = useState("Vše");
+  const [q, setQ] = useState("");
+  const [toast, setToast] = useState(null);
+
+  // Live Firestore listener
+  useEffect(() => {
+    let unsub = null;
+    getFB().then(({ db, collection, query, orderBy, onSnapshot }) => {
+      const col = collection(db, "recepty");
+      const qry = query(col, orderBy("createdAt", "desc"));
+      unsub = onSnapshot(qry,
+        snap => {
+          setFbRecipes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+          setFbReady(true);
+          setFbError(null);
+        },
+        err => {
+          console.warn("Firestore:", err.message);
+          setFbError("Firebase nedostupný — lokální režim");
+        }
+      );
+    }).catch(err => {
+      console.warn("Firebase init:", err.message);
+      setFbError("Firebase init failed — lokální režim");
+    });
+    return () => unsub?.();
+  }, []);
+
+  const recipes = fbReady ? fbRecipes : local;
+
+  const showToast = (msg, icon="✓") => {
+    setToast({msg,icon}); setTimeout(()=>setToast(null), 2600);
+  };
+
+  const save = async (data) => {
+    try {
+      const { db, collection, addDoc, doc, updateDoc, serverTimestamp } = await getFB();
+      const col = collection(db, "recepty");
+      const { id, ...rest } = data;
+      const clean = JSON.parse(JSON.stringify(rest));
+      if (id && !id.startsWith("seed")) {
+        await updateDoc(doc(db, "recepty", id), { ...clean, updatedAt: serverTimestamp() });
+      } else {
+        await addDoc(col, { ...clean, createdAt: serverTimestamp(), timesCooked: 0 });
+      }
+    } catch (err) {
+      console.warn("Save fallback to local:", err.message);
+      setLocal(prev => {
+        const ex = prev.find(r=>r.id===data.id);
+        if (ex) return prev.map(r=>r.id===data.id?data:r);
+        return [{...data, id:uid(), createdAt:todayStr(), timesCooked:0}, ...prev];
+      });
+    }
+    setAddOpen(false); setEditTarget(null);
+    showToast("Recept uložen","🍽");
+  };
+
+  const del = async (id) => {
+    try {
+      if (id && !id.startsWith("seed")) {
+        const { db, doc, deleteDoc } = await getFB();
+        await deleteDoc(doc(db, "recepty", id));
+      } else {
+        setLocal(p=>p.filter(r=>r.id!==id));
+      }
+    } catch { setLocal(p=>p.filter(r=>r.id!==id)); }
+    setView("home"); setActive(null);
+    showToast("Recept smazán","🗑");
+  };
+
+  const cooked = async (id) => {
+    const upd = r => ({...r, timesCooked:(r.timesCooked||0)+1, lastCooked:todayStr()});
+    setActive(p => p ? upd(p) : p);
+    try {
+      if (id && !id.startsWith("seed")) {
+        const { db, doc, updateDoc, increment } = await getFB();
+        await updateDoc(doc(db,"recepty",id), { timesCooked: increment(1), lastCooked: todayStr() });
+      } else {
+        setLocal(p=>p.map(r=>r.id===id?upd(r):r));
+      }
+    } catch { setLocal(p=>p.map(r=>r.id===id?upd(r):r)); }
+    showToast("Uvařeno! Bon appétit 🍳","👨‍🍳");
+  };
+
+  const rate = async (id, stars) => {
+    setActive(p=>p?{...p,rating:stars}:p);
+    try {
+      if (id && !id.startsWith("seed")) {
+        const { db, doc, updateDoc } = await getFB();
+        await updateDoc(doc(db,"recepty",id), { rating: stars });
+      } else {
+        setLocal(p=>p.map(r=>r.id===id?{...r,rating:stars}:r));
+      }
+    } catch { setLocal(p=>p.map(r=>r.id===id?{...r,rating:stars}:r)); }
+    showToast(`Hodnocení uloženo ${"★".repeat(stars)}`,"⭐");
+  };
+
+  const filtered = recipes.filter(r=>
+    (cat==="Vše"||r.category===cat) &&
+    (r.title?.toLowerCase().includes(q.toLowerCase()) ||
+     r.tags?.some(t=>t.toLowerCase().includes(q.toLowerCase())))
+  );
+
+  const openR = (r) => { setActive(r); setView("recipe"); };
+  const goHome = () => { setView("home"); setActive(null); };
+
+  return (
+    <div style={{minHeight:"100vh",background:"#F5EFE6",fontFamily:"'Lora',Georgia,serif",color:"#2C1A0E"}}>
+      <style>{CSS}</style>
+
+      {/* Firebase status banner */}
+      {fbError && (
+        <div className="S" style={{background:"#FFF3CD",borderBottom:"1px solid #FFDDA0",padding:"8px 16px",fontSize:12,color:"#7A5000",textAlign:"center"}}>
+          ⚠️ {fbError}
+        </div>
+      )}
+      {fbReady && !fbError && (
+        <div className="S" style={{background:"#E8F5E9",borderBottom:"1px solid #C8E6C9",padding:"6px 16px",fontSize:11,color:"#2E7D32",textAlign:"center",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+          <span style={{width:7,height:7,borderRadius:"50%",background:"#43A047",display:"inline-block",animation:"pu 2s ease-in-out infinite"}}></span>
+          Připojeno k Firebase — live sync aktivní · {recipes.length} receptů
+        </div>
+      )}
+
+      {view==="home"  && <HomeView recipes={filtered} all={recipes} cats={CATS} cat={cat} setCat={setCat} q={q} setQ={setQ} onOpen={openR} onAdd={()=>{setEditTarget(null);setAddOpen(true)}} onStats={()=>setView("stats")} fbReady={fbReady} />}
+      {view==="recipe"&& active && <RecipeView recipe={active} onBack={goHome} onCooked={()=>cooked(active.id)} onRate={s=>rate(active.id,s)} onDelete={()=>del(active.id)} onEdit={()=>{setEditTarget(active);setAddOpen(true)}} />}
+      {view==="stats" && <StatsView recipes={recipes} onBack={goHome} />}
+
+      {addOpen && (
+        <div className="ov" onClick={()=>{setAddOpen(false);setEditTarget(null)}}>
+          <AddModal onClose={()=>{setAddOpen(false);setEditTarget(null)}} onSave={save} initial={editTarget} />
+        </div>
+      )}
+
+      {toast && <div className="toast">{toast.icon} {toast.msg}</div>}
+
+      <nav style={{position:"fixed",bottom:0,left:0,right:0,background:"rgba(245,239,230,.96)",backdropFilter:"blur(16px)",borderTop:"1px solid #D9C9B5",display:"flex",justifyContent:"center",gap:0,padding:"6px 0 8px",zIndex:50}}>
+        <div className={`nv${view==="home"?" on":""}`} onClick={goHome}><span style={{fontSize:22}}>🏠</span>Recepty</div>
+        <div className="nv" onClick={()=>{setEditTarget(null);setAddOpen(true)}}>
+          <span style={{fontSize:22,display:"block",background:"#C8743A",borderRadius:"50%",width:38,height:38,lineHeight:"38px",textAlign:"center",color:"#fff",boxShadow:"0 3px 10px rgba(200,116,58,.4)",marginBottom:1}}>+</span>
+          Přidat
+        </div>
+        <div className={`nv${view==="stats"?" on":""}`} onClick={()=>setView("stats")}><span style={{fontSize:22}}>📊</span>Statistiky</div>
+      </nav>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════════════════════════
+function HomeView({ recipes, all, cats, cat, setCat, q, setQ, onOpen, onAdd, fbReady }) {
+  const hero = [...all].sort((a,b)=>(b.timesCooked||0)-(a.timesCooked||0))[0];
+  const recent = [...all].filter(r=>r.lastCooked).sort((a,b)=>b.lastCooked.localeCompare(a.lastCooked)).slice(0,5);
+
+  return (
+    <div style={{paddingBottom:90,maxWidth:660,margin:"0 auto"}}>
+      {/* Header */}
+      <div style={{padding:"36px 24px 0",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:48,height:48,borderRadius:16,background:"#C8743A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 4px 14px rgba(200,116,58,.38)"}}>🍲</div>
+          <div>
+            <h1 className="L" style={{fontSize:34,fontWeight:700,color:"#2C1A0E",lineHeight:1}}>Rendlík</h1>
+            <p className="S" style={{color:"#9C7A5A",fontSize:12,marginTop:2}}>Rodinná kuchařka</p>
+          </div>
+        </div>
+        <div className="S" style={{paddingTop:6,textAlign:"right"}}>
+          <div style={{fontSize:11,color:"#9C7A5A"}}>{all.length} receptů</div>
+          {fbReady && <div style={{fontSize:10,color:"#43A047",fontWeight:700,marginTop:2}}>🟢 Live sync</div>}
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{padding:"20px 24px 0"}}>
+        <div style={{position:"relative"}}>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:16,pointerEvents:"none"}}>🔍</span>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Hledat recept, ingredienci, tag…" style={{paddingLeft:42}} />
+        </div>
+      </div>
+
+      {/* Hero */}
+      {hero && !q && cat==="Vše" && (
+        <div style={{padding:"22px 24px 0"}}>
+          <p className="S" style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"#C8743A",textTransform:"uppercase",marginBottom:10}}>Nejoblíbenější recept</p>
+          <div className="card tx2" onClick={()=>onOpen(hero)} style={{position:"relative",height:220,background:hero.heroColor}}>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(to top, rgba(0,0,0,.68) 0%, rgba(0,0,0,.04) 58%)"}} />
+            <div style={{position:"absolute",top:18,right:20,fontSize:68,filter:"drop-shadow(0 4px 10px rgba(0,0,0,.32))",transform:"rotate(-8deg)"}}>{hero.emoji}</div>
+            <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 22px 20px"}}>
+              <div style={{marginBottom:8,display:"flex",flexWrap:"wrap",gap:4}}>
+                {hero.tags?.slice(0,3).map(t=><span key={t} className="chip" style={{background:"rgba(255,255,255,.18)",color:"rgba(255,255,255,.9)"}}>{t}</span>)}
+              </div>
+              <h2 className="L" style={{color:"#fff",fontSize:24,fontWeight:700,marginBottom:6,lineHeight:1.2}}>{hero.title}</h2>
+              <div className="S" style={{display:"flex",gap:16,color:"rgba(255,255,255,.8)",fontSize:13,alignItems:"center"}}>
+                <span>⏱ {fmt(hero.prepTime+hero.cookTime)}</span>
+                <span>👨‍🍳 {hero.timesCooked}×</span>
+                <Stars value={hero.rating} size={14} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recently cooked */}
+      {!q && cat==="Vše" && recent.length>0 && (
+        <div style={{padding:"22px 0 0"}}>
+          <p className="S" style={{fontSize:11,fontWeight:700,letterSpacing:2,color:"#C8743A",textTransform:"uppercase",marginBottom:10,paddingLeft:24}}>Naposledy vařeno</p>
+          <div style={{display:"flex",gap:12,overflowX:"auto",paddingLeft:24,paddingRight:24,scrollbarWidth:"none",paddingBottom:4}}>
+            {recent.map(r=>(
+              <div key={r.id} onClick={()=>onOpen(r)} style={{flexShrink:0,width:112,cursor:"pointer"}}>
+                <div style={{width:112,height:84,borderRadius:14,background:r.heroColor,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,marginBottom:8,boxShadow:"0 3px 12px rgba(44,26,14,.15)",position:"relative",overflow:"hidden"}}>
+                  <div className="tx2" style={{position:"absolute",inset:0}} />
+                  <span style={{position:"relative"}}>{r.emoji}</span>
+                </div>
+                <p className="S" style={{fontSize:11,fontWeight:600,color:"#2C1A0E",lineHeight:1.3,textAlign:"center"}}>{r.title}</p>
+                <p className="S" style={{fontSize:10,color:"#9C7A5A",textAlign:"center",marginTop:1}}>{r.lastCooked}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Category pills */}
+      <div style={{padding:"20px 0 0",display:"flex",gap:8,overflowX:"auto",scrollbarWidth:"none",paddingLeft:24,paddingRight:24}}>
+        {cats.map(c=>(
+          <button key={c} onClick={()=>setCat(c)} className="btn S" style={{whiteSpace:"nowrap",padding:"8px 18px",fontSize:13,borderRadius:22,background:cat===c?"#C8743A":"#EDE4D6",color:cat===c?"#fff":"#6B4A2A",border:"none",boxShadow:cat===c?"0 2px 10px rgba(200,116,58,.3)":"none"}}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <div style={{padding:"16px 24px 0",display:"grid",gridTemplateColumns:"1fr 1fr",gap:15}}>
+        {recipes.map((r,i)=>(
+          <div key={r.id} className="card fi" onClick={()=>onOpen(r)} style={{animationDelay:`${i*.05}s`}}>
+            <div style={{height:112,background:r.heroColor,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+              <div className="tx2" style={{position:"absolute",inset:0}} />
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(255,255,255,.08),transparent)"}} />
+              <span style={{fontSize:46,position:"relative",filter:"drop-shadow(0 2px 4px rgba(0,0,0,.18))"}}>{r.emoji}</span>
+            </div>
+            <div style={{padding:"12px 14px 14px"}}>
+              <p className="S" style={{fontSize:10,color:"#C8743A",fontWeight:700,letterSpacing:1.2,textTransform:"uppercase",marginBottom:3}}>{r.category}</p>
+              <h3 className="L" style={{fontSize:15,lineHeight:1.35,marginBottom:7,fontWeight:600}}>{r.title}</h3>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <Stars value={r.rating} size={13} />
+                <span className="S" style={{fontSize:11,color:"#9C7A5A"}}>⏱ {fmt(r.prepTime+r.cookTime)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {recipes.length===0&&(
+          <div style={{gridColumn:"1/-1",textAlign:"center",padding:"52px 0",color:"#9C7A5A"}}>
+            <div style={{fontSize:52,marginBottom:14}}>🥄</div>
+            <p className="L" style={{fontSize:20,marginBottom:6}}>Žádné recepty</p>
+            <p className="S" style={{fontSize:14}}>Přidej svůj první recept!</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RECIPE DETAIL
+// ═══════════════════════════════════════════════════════════════════
+function RecipeView({ recipe, onBack, onCooked, onRate, onDelete, onEdit }) {
+  const [portions, setPortions] = useState(recipe.servings||4);
+  const [unitAlt, setUnitAlt] = useState(false);
+  const [tab, setTab] = useState("ing");
+  const [delConfirm, setDelConfirm] = useState(false);
+  const scale = portions/(recipe.servings||4);
+
+  const cvt = (amt, unit) => {
+    if (!unitAlt) return `${+(amt*scale).toFixed(2)} ${unit}`;
+    const c = UNIT_CONV[unit];
+    if (!c) return `${+(amt*scale).toFixed(2)} ${unit}`;
+    const [nu,f] = Object.entries(c)[0];
+    return `${+((amt*scale)*f).toFixed(3)} ${nu}`;
+  };
+
+  return (
+    <div style={{paddingBottom:90,maxWidth:660,margin:"0 auto"}}>
+      {/* Hero */}
+      <div style={{height:270,background:recipe.heroColor,position:"relative",overflow:"hidden"}}>
+        <div className="tx2" style={{position:"absolute",inset:0}} />
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top, rgba(0,0,0,.7) 0%, rgba(0,0,0,.04) 58%)"}} />
+        <button onClick={onBack} style={{position:"absolute",top:18,left:18,background:"rgba(255,255,255,.18)",border:"none",borderRadius:12,padding:"9px 15px",color:"#fff",fontSize:20,cursor:"pointer",backdropFilter:"blur(8px)"}}>←</button>
+        <div style={{position:"absolute",top:18,right:18,display:"flex",gap:8}}>
+          <button onClick={onEdit} style={{background:"rgba(255,255,255,.18)",border:"none",borderRadius:12,padding:"9px 14px",color:"#fff",cursor:"pointer",backdropFilter:"blur(8px)",fontSize:14,fontFamily:"'Source Sans 3',sans-serif",fontWeight:600}}>✏️ Upravit</button>
+          <button onClick={()=>setDelConfirm(true)} style={{background:"rgba(200,50,50,.3)",border:"none",borderRadius:12,padding:"9px 14px",color:"#fff",cursor:"pointer",backdropFilter:"blur(8px)",fontSize:14}}>🗑</button>
+        </div>
+        <div style={{position:"absolute",top:"35%",left:"50%",transform:"translate(-50%,-50%)",fontSize:82,filter:"drop-shadow(0 8px 16px rgba(0,0,0,.32))"}}>{recipe.emoji}</div>
+        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"0 24px 22px"}}>
+          <div style={{marginBottom:7,display:"flex",flexWrap:"wrap",gap:4}}>
+            {recipe.tags?.map(t=><span key={t} className="chip" style={{background:"rgba(255,255,255,.2)",color:"rgba(255,255,255,.9)"}}>{t}</span>)}
+          </div>
+          <h1 className="L" style={{color:"#fff",fontSize:26,fontWeight:700,lineHeight:1.2,marginBottom:4}}>{recipe.title}</h1>
+          {recipe.description&&<p className="S" style={{color:"rgba(255,255,255,.75)",fontSize:13,lineHeight:1.5}}>{recipe.description}</p>}
+        </div>
+      </div>
+
+      {/* Meta */}
+      <div style={{background:"#FBF8F3",padding:"15px 24px",display:"flex",alignItems:"center",borderBottom:"1px solid #D9C9B5",boxShadow:"0 2px 10px rgba(44,26,14,.05)"}}>
+        {[["Příprava",fmt(recipe.prepTime)],["Vaření",fmt(recipe.cookTime)],["Uvařeno",`${recipe.timesCooked||0}×`]].map(([l,v],i)=>(
+          <div key={l} style={{display:"contents"}}>
+            {i>0&&<div style={{width:1,height:36,background:"#D9C9B5",margin:"0 14px"}} />}
+            <div className="S" style={{flex:1,textAlign:"center"}}>
+              <p style={{fontSize:17,fontWeight:700,color:"#2C1A0E"}}>{v}</p>
+              <p style={{fontSize:10,color:"#9C7A5A",letterSpacing:.8,textTransform:"uppercase"}}>{l}</p>
+            </div>
+          </div>
+        ))}
+        <div style={{marginLeft:"auto",paddingLeft:14}}><Stars value={recipe.rating} onChange={onRate} size={24} /></div>
+      </div>
+
+      {/* Portions + unit */}
+      <div style={{padding:"14px 24px",background:"#F5EFE6",display:"flex",gap:12,alignItems:"center",borderBottom:"1px solid #D9C9B5"}}>
+        <span className="S" style={{color:"#6B4A2A",fontWeight:700,fontSize:14}}>Porce:</span>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={()=>setPortions(p=>Math.max(1,p-1))} style={{width:34,height:34,borderRadius:"50%",background:"#EDE4D6",border:"none",cursor:"pointer",fontSize:20,color:"#6B4A2A",lineHeight:"34px"}}>−</button>
+          <span className="L" style={{fontSize:22,minWidth:28,textAlign:"center"}}>{portions}</span>
+          <button onClick={()=>setPortions(p=>p+1)} style={{width:34,height:34,borderRadius:"50%",background:"#C8743A",border:"none",cursor:"pointer",fontSize:20,color:"#fff",lineHeight:"34px"}}>+</button>
+        </div>
+        <button onClick={()=>setUnitAlt(a=>!a)} className="btn S" style={{marginLeft:"auto",padding:"8px 16px",fontSize:12,background:unitAlt?"#C8743A":"#EDE4D6",color:unitAlt?"#fff":"#6B4A2A",border:"none"}}>
+          {unitAlt?"↩ Zpět":"🔄 Převést"}
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",background:"#FBF8F3",borderBottom:"1px solid #D9C9B5"}}>
+        {[["ing","Suroviny"],["steps","Postup"],["photos","Fotky"]].map(([k,l])=>(
+          <button key={k} className={`tb${tab===k?" on":""}`} onClick={()=>setTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      <div style={{padding:"22px 24px"}}>
+        {tab==="ing"&&(
+          <div className="fi">
+            {recipe.ingredients?.map((ing,i)=>(
+              <div key={ing.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:i<recipe.ingredients.length-1?"1px solid #D9C9B5":"none"}}>
+                <span className="S" style={{fontSize:15,color:"#2C1A0E"}}>{ing.name}</span>
+                <span className="S" style={{fontSize:15,fontWeight:700,color:"#C8743A"}}>{cvt(ing.amount,ing.unit)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==="steps"&&(
+          <div className="fi">
+            {recipe.steps?.map((s,i)=>(
+              <div key={s.id} style={{display:"flex",gap:14,marginBottom:20,alignItems:"flex-start"}}>
+                <div className="sdot">{i+1}</div>
+                <p className="S" style={{fontSize:15,lineHeight:1.7,color:"#2C1A0E",paddingTop:3}}>{s.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab==="photos"&&(
+          <div className="fi" style={{textAlign:"center",padding:"36px 0"}}>
+            <div style={{fontSize:52,marginBottom:14}}>📷</div>
+            <p className="L" style={{fontSize:20,color:"#6B4A2A",marginBottom:6}}>Přidej fotky receptu</p>
+            <p className="S" style={{fontSize:13,color:"#9C7A5A",marginBottom:20}}>Foť přímo z kamery nebo vyber z galerie</p>
+            <button className="btn bO S">📷 Vyfotit / Vybrat</button>
+          </div>
+        )}
+      </div>
+
+      <div style={{padding:"0 24px 24px"}}>
+        <button onClick={onCooked} className="btn bP S" style={{width:"100%"}}>👨‍🍳 Označit jako uvařené dnes</button>
+      </div>
+
+      {delConfirm&&(
+        <div className="ov" onClick={()=>setDelConfirm(false)}>
+          <div style={{background:"#F5EFE6",borderRadius:"24px 24px 0 0",padding:28,width:"100%",maxWidth:660}} onClick={e=>e.stopPropagation()}>
+            <h3 className="L" style={{fontSize:22,marginBottom:10}}>Smazat recept?</h3>
+            <p className="S" style={{color:"#6B4A2A",marginBottom:22,fontSize:14}}>Tuto akci nelze vrátit zpět.</p>
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={()=>setDelConfirm(false)} className="btn bO S" style={{flex:1}}>Zrušit</button>
+              <button onClick={onDelete} className="btn S" style={{flex:1,background:"#B03020",color:"#fff",padding:"13px 0",borderRadius:12,fontSize:15}}>Smazat</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  STATS
+// ═══════════════════════════════════════════════════════════════════
+function StatsView({ recipes, onBack }) {
+  const sorted = [...recipes].sort((a,b)=>(b.timesCooked||0)-(a.timesCooked||0));
+  const maxC = sorted[0]?.timesCooked||1;
+  const total = recipes.reduce((s,r)=>s+(r.timesCooked||0),0);
+  const avgR = recipes.length?(recipes.reduce((s,r)=>s+(r.rating||0),0)/recipes.length).toFixed(1):0;
+  const topR = [...recipes].sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,5);
+  const byCat = recipes.reduce((a,r)=>{a[r.category]=(a[r.category]||0)+1;return a;},{});
+
+  return (
+    <div style={{paddingBottom:90,maxWidth:660,margin:"0 auto"}}>
+      <div style={{padding:"32px 24px 20px",display:"flex",alignItems:"center",gap:14}}>
+        <button onClick={onBack} style={{background:"#EDE4D6",border:"none",borderRadius:12,padding:"9px 15px",fontSize:18,cursor:"pointer"}}>←</button>
+        <h1 className="L" style={{fontSize:28}}>Statistiky</h1>
+      </div>
+
+      <div style={{padding:"0 24px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+        {[["📚","Receptů",recipes.length],["🍳","Uvařeno",total+"×"],["⭐","Průměr",avgR+"★"]].map(([ic,l,v])=>(
+          <div key={l} style={{background:"#FBF8F3",borderRadius:16,padding:"18px 10px",textAlign:"center",boxShadow:"0 2px 14px rgba(44,26,14,.1)"}}>
+            <div style={{fontSize:26,marginBottom:6}}>{ic}</div>
+            <p className="L" style={{fontSize:21,color:"#C8743A",fontWeight:700}}>{v}</p>
+            <p className="S" style={{fontSize:11,color:"#9C7A5A",marginTop:2}}>{l}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding:"0 24px 20px"}}>
+        <div style={{background:"#FBF8F3",borderRadius:18,padding:22,boxShadow:"0 2px 14px rgba(44,26,14,.08)"}}>
+          <h3 className="L" style={{fontSize:19,marginBottom:18}}>Nejčastěji vařené 🏆</h3>
+          {sorted.slice(0,6).map((r,i)=>(
+            <div key={r.id} style={{marginBottom:16}}>
+              <div className="S" style={{display:"flex",justifyContent:"space-between",fontSize:14,marginBottom:6}}>
+                <span style={{fontWeight:600}}><span style={{color:"#C8A96A",marginRight:6}}>#{i+1}</span>{r.title}</span>
+                <span style={{color:"#C8743A",fontWeight:700}}>{r.timesCooked||0}×</span>
+              </div>
+              <div className="pr"><div className="pf" style={{width:`${((r.timesCooked||0)/maxC)*100}%`}} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:"0 24px 20px"}}>
+        <div style={{background:"#FBF8F3",borderRadius:18,padding:22,boxShadow:"0 2px 14px rgba(44,26,14,.08)"}}>
+          <h3 className="L" style={{fontSize:19,marginBottom:18}}>Nejlépe hodnocené ⭐</h3>
+          {topR.map((r,i)=>(
+            <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 0",borderBottom:i<topR.length-1?"1px solid #D9C9B5":"none"}}>
+              <div>
+                <p className="S" style={{fontSize:14,fontWeight:600}}>{r.title}</p>
+                <p className="S" style={{fontSize:11,color:"#9C7A5A"}}>{r.category}</p>
+              </div>
+              <Stars value={r.rating} size={17} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:"0 24px 20px"}}>
+        <div style={{background:"#FBF8F3",borderRadius:18,padding:22,boxShadow:"0 2px 14px rgba(44,26,14,.08)"}}>
+          <h3 className="L" style={{fontSize:19,marginBottom:16}}>Kategorie</h3>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([c,n])=>(
+              <div key={c} className="S" style={{background:"#EDE4D6",borderRadius:22,padding:"8px 16px",fontSize:13}}>
+                <span style={{color:"#6B4A2A"}}>{c}</span>
+                <span style={{color:"#C8743A",fontWeight:700,marginLeft:7}}>{n}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  ADD/EDIT MODAL
+// ═══════════════════════════════════════════════════════════════════
+function AddModal({ onClose, onSave, initial }) {
+  const [step, setStep] = useState(0);
+  const [title, setTitle] = useState(initial?.title||"");
+  const [category, setCategory] = useState(initial?.category||"Hlavní jídla");
+  const [emoji, setEmoji] = useState(initial?.emoji||"🍽");
+  const [heroColor, setHeroColor] = useState(initial?.heroColor||HERO_COLORS[Math.floor(Math.random()*HERO_COLORS.length)]);
+  const [description, setDescription] = useState(initial?.description||"");
+  const [prepTime, setPrepTime] = useState(initial?.prepTime||15);
+  const [cookTime, setCookTime] = useState(initial?.cookTime||30);
+  const [servings, setServings] = useState(initial?.servings||4);
+  const [tags, setTags] = useState(initial?.tags?.join(", ")||"");
+  const [ings, setIngs] = useState(initial?.ingredients||[{id:uid(),name:"",amount:"",unit:"g"}]);
+  const [steps, setSteps] = useState(initial?.steps||[{id:uid(),text:""}]);
+  const [isRec, setIsRec] = useState(false);
+  const [recTarget, setRecTarget] = useState(null);
+  const [transcript, setTranscript] = useState("");
+  const recRef = useRef(null);
+
+  const startRec = (target) => {
+    const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+    if (!SR) { alert("Hlasový vstup není dostupný v tomto prohlížeči. Zkuste Chrome."); return; }
+    const r = new SR(); r.lang="cs-CZ"; r.continuous=true; r.interimResults=true;
+    r.onresult=e=>setTranscript(Array.from(e.results).map(x=>x[0].transcript).join(" "));
+    r.onerror=()=>setIsRec(false); r.onend=()=>setIsRec(false);
+    recRef.current=r; r.start(); setIsRec(true); setRecTarget(target); setTranscript("");
+  };
+  const stopRec = () => { recRef.current?.stop(); setIsRec(false); };
+  const applyTr = () => {
+    if (recTarget==="ing") {
+      const lines = transcript.split(/[,;\n]+/).map(l=>l.trim()).filter(Boolean);
+      setIngs(p=>[...p.filter(i=>i.name),...lines.map(l=>({id:uid(),name:l,amount:"",unit:"g"}))]);
+    } else {
+      const lines = transcript.split(/(?<=[.!?])\s+/).map(l=>l.trim()).filter(Boolean);
+      if (!lines.length && transcript.trim()) lines.push(transcript.trim());
+      setSteps(p=>[...p.filter(s=>s.text),...lines.map(l=>({id:uid(),text:l}))]);
+    }
+    setTranscript(""); setRecTarget(null);
+  };
+
+  const addI = () => setIngs(p=>[...p,{id:uid(),name:"",amount:"",unit:"g"}]);
+  const updI = (id,f,v) => setIngs(p=>p.map(i=>i.id===id?{...i,[f]:v}:i));
+  const delI = id => setIngs(p=>p.filter(i=>i.id!==id));
+  const addS = () => setSteps(p=>[...p,{id:uid(),text:""}]);
+  const updS = (id,v) => setSteps(p=>p.map(s=>s.id===id?{...s,text:v}:s));
+  const delS = id => setSteps(p=>p.filter(s=>s.id!==id));
+
+  const doSave = () => {
+    if (!title.trim()) { alert("Zadej prosím název receptu."); return; }
+    onSave({
+      ...initial, title:title.trim(), category, emoji, heroColor, description,
+      tags:tags.split(",").map(t=>t.trim()).filter(Boolean),
+      prepTime:+prepTime, cookTime:+cookTime, servings:+servings,
+      ingredients:ings.filter(i=>i.name.trim()),
+      steps:steps.filter(s=>s.text.trim()),
+      rating:initial?.rating||0,
+    });
+  };
+
+  const VoiceBox = ({target, label, hint}) => (
+    <div style={{background:"#FFF8F0",border:"1.5px solid #F0DCC0",borderRadius:14,padding:18,marginBottom:20}}>
+      <p className="S" style={{fontSize:14,fontWeight:700,color:"#6B4A2A",marginBottom:5}}>🎤 {label}</p>
+      <p className="S" style={{fontSize:12,color:"#9C7A5A",marginBottom:12,lineHeight:1.5}}>{hint}</p>
+      <button
+        onClick={()=>isRec&&recTarget===target?stopRec():startRec(target)}
+        className={`btn S${isRec&&recTarget===target?" pu":""}`}
+        style={{background:isRec&&recTarget===target?"#B03020":"#C8743A",color:"#fff",padding:"10px 20px",fontSize:13}}>
+        {isRec&&recTarget===target?"⏹ Zastavit nahrávání":"🎤 Začít diktovat"}
+      </button>
+      {isRec&&recTarget===target&&(
+        <p className="S" style={{fontSize:12,color:"#9C7A5A",marginTop:8,fontStyle:"italic"}}>Nahrávám… {transcript.slice(-80)}</p>
+      )}
+      {transcript&&recTarget===target&&!isRec&&(
+        <div style={{marginTop:12}}>
+          <label className="lbl">Přepis — uprav podle potřeby</label>
+          <textarea value={transcript} onChange={e=>setTranscript(e.target.value)} rows={3} style={{fontSize:13,marginBottom:10,resize:"none"}} />
+          <button onClick={applyTr} className="btn bP S" style={{fontSize:13}}>✓ Použít přepis</button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="sh su" onClick={e=>e.stopPropagation()}>
+      <div style={{padding:"22px 24px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:"#F5EFE6",zIndex:10,borderBottom:"1px solid #D9C9B5"}}>
+        <h2 className="L" style={{fontSize:23}}>{initial?.id?"Upravit recept":"Nový recept"}</h2>
+        <button onClick={onClose} style={{background:"#EDE4D6",border:"none",borderRadius:10,padding:"7px 13px",cursor:"pointer",fontSize:16}}>✕</button>
+      </div>
+
+      {/* Step indicator */}
+      <div style={{display:"flex",padding:"16px 24px 0",gap:8}}>
+        {["Základní info","Suroviny","Postup"].map((l,i)=>(
+          <div key={i} onClick={()=>setStep(i)} style={{flex:1,cursor:"pointer",textAlign:"center"}}>
+            <div style={{height:4,borderRadius:2,background:step>=i?"#C8743A":"#D9C9B5",marginBottom:5,transition:"background .25s"}} />
+            <p className="S" style={{fontSize:11,color:step===i?"#C8743A":"#9C7A5A",fontWeight:step===i?700:400}}>{l}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{padding:"20px 24px"}}>
+        {step===0&&(
+          <div style={{display:"flex",flexDirection:"column",gap:18}} className="fi">
+            <div>
+              <label className="lbl">Emoji ikona</label>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {EMOJIS.map(e=>(
+                  <span key={e} onClick={()=>setEmoji(e)} style={{fontSize:24,cursor:"pointer",padding:"6px 7px",borderRadius:10,background:emoji===e?"#EDE4D6":"transparent",border:emoji===e?"2px solid #C8743A":"2px solid transparent",transition:"all .15s"}}>{e}</span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="lbl">Barva karty</label>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {HERO_COLORS.map(c=>(
+                  <div key={c} onClick={()=>setHeroColor(c)} style={{width:34,height:34,borderRadius:"50%",background:c,cursor:"pointer",border:heroColor===c?"3px solid #C8743A":"3px solid transparent",boxShadow:"0 2px 6px rgba(0,0,0,.22)",transition:"transform .15s",transform:heroColor===c?"scale(1.18)":"scale(1)"}} />
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="lbl">Název receptu *</label>
+              <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Např. Svíčková na smetaně" />
+            </div>
+            <div>
+              <label className="lbl">Kategorie</label>
+              <select value={category} onChange={e=>setCategory(e.target.value)}>
+                {CATS.filter(c=>c!=="Vše").map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="lbl">Popis (volitelný)</label>
+              <textarea value={description} onChange={e=>setDescription(e.target.value)} rows={2} placeholder="Krátký popis receptu…" style={{resize:"none"}} />
+            </div>
+            <div>
+              <label className="lbl">Tagy (oddělené čárkou)</label>
+              <input value={tags} onChange={e=>setTags(e.target.value)} placeholder="česká klasika, nedělní oběd, rychlé" />
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+              {[["Příprava (min)",prepTime,setPrepTime],["Vaření (min)",cookTime,setCookTime],["Porce",servings,setServings]].map(([l,v,s])=>(
+                <div key={l}>
+                  <label className="lbl" style={{fontSize:10}}>{l}</label>
+                  <input type="number" value={v} onChange={e=>s(e.target.value)} style={{textAlign:"center"}} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step===1&&(
+          <div className="fi">
+            <VoiceBox target="ing" label="Hlasové přidání surovin" hint={'Řekni "suroviny" a diktuj seznam oddělený čárkami. Pak oprav přepis a klikni Použít.'} />
+            {ings.map(ing=>(
+              <div key={ing.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:8,alignItems:"center",marginBottom:9}}>
+                <input value={ing.name} onChange={e=>updI(ing.id,"name",e.target.value)} placeholder="Surovina" />
+                <input type="number" value={ing.amount} onChange={e=>updI(ing.id,"amount",e.target.value)} placeholder="Qty" style={{textAlign:"center"}} />
+                <select value={ing.unit} onChange={e=>updI(ing.id,"unit",e.target.value)}>
+                  {UNITS.map(u=><option key={u}>{u}</option>)}
+                </select>
+                <button onClick={()=>delI(ing.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C8743A",lineHeight:1,padding:"0 2px"}}>×</button>
+              </div>
+            ))}
+            <button onClick={addI} className="btn bO S" style={{width:"100%",marginTop:6,fontSize:14}}>+ Přidat surovinu</button>
+          </div>
+        )}
+
+        {step===2&&(
+          <div className="fi">
+            <VoiceBox target="steps" label="Hlasové přidání postupu" hint={'Řekni "postup" a diktuj kroky. Každý krok ukonči tečkou. Pak oprav a klikni Použít.'} />
+            {steps.map((s,i)=>(
+              <div key={s.id} style={{display:"flex",gap:12,marginBottom:14,alignItems:"flex-start"}}>
+                <div className="sdot">{i+1}</div>
+                <textarea value={s.text} onChange={e=>updS(s.id,e.target.value)} rows={2} placeholder={`Krok ${i+1}…`} style={{flex:1,resize:"none",fontSize:14}} />
+                <button onClick={()=>delS(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C8743A",marginTop:4}}>×</button>
+              </div>
+            ))}
+            <button onClick={addS} className="btn bO S" style={{width:"100%",marginTop:4,fontSize:14}}>+ Přidat krok</button>
+          </div>
+        )}
+
+        <div style={{display:"flex",gap:12,marginTop:24}}>
+          {step>0&&<button onClick={()=>setStep(s=>s-1)} className="btn bO S" style={{flex:1}}>← Zpět</button>}
+          {step<2
+            ?<button onClick={()=>setStep(s=>s+1)} className="btn bP S" style={{flex:1}}>Dál →</button>
+            :<button onClick={doSave} className="btn bP S" style={{flex:1}}>✓ Uložit recept</button>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
